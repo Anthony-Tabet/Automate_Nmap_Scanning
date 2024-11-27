@@ -1,1 +1,1 @@
-# Automate_Namp_Scanning
+# Automate_Nmap_Scanning
