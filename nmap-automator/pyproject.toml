@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "nmap-automator"
+version = "0.1.0"
+description = ""
+authors = ["Elias Dargham <edargham@hotmail.com>"]
+readme = "README.md"
+packages = [{include = "nmap_automator", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-nmap = "^0.7.1"
+python-dotenv = "^1.0.1"
+pandas = "^2.2.3"
+openai = "^1.58.1"
+google-generativeai = "^0.8.3"
+ollama-python = "^0.1.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
