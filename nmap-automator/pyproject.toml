@@ -1,10 +1,13 @@
 [tool.poetry]
 name = "nmap-automator"
-version = "0.1.0"
+version = "0.1.3"
 description = ""
-authors = ["Elias Dargham <edargham@hotmail.com>"]
+authors = ["Elias Dargham <elias.dargham@net.usj.edu.lb>", "Anthony Tabet <anthony.tabet2@net.usj.edu.lb>"]
 readme = "README.md"
 packages = [{include = "nmap_automator", from = "src"}]
+
+[tool.poetry.scripts]
+nmap-automator = "nmap_automator.runner:main"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -13,7 +16,7 @@ python-dotenv = "^1.0.1"
 pandas = "^2.2.3"
 openai = "^1.58.1"
 google-generativeai = "^0.8.3"
-ollama-python = "^0.1.2"
+ollama = "^0.4.4"
 
 
 [build-system]

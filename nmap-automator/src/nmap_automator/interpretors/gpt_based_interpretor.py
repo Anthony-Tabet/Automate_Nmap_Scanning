@@ -5,19 +5,19 @@ from openai import OpenAI
 class GPTInterpretor(BaseInterpretor):
     def __init__(
         self,
-        target: str,
         name: str,
         model_flavor: str="gpt-4",
         api_key: str=None
     ):
         self.__client = None
-        super().__init__(target, name, model_flavor, api_key)
+        super().__init__(name, model_flavor, api_key)
 
-    @abstractmethod
+    
     def configure(self):
         self.__client = OpenAI(api_key=self.api_key)
+        super().configure()
     
-    @abstractmethod
+    
     def interpret(self, scan_results: str) -> dict:
         classifications = {
             "error": None,
@@ -27,13 +27,14 @@ class GPTInterpretor(BaseInterpretor):
         if not self.is_configured:
             classifications["error"] =  "Interpretor not configured."
         else:
-            prompt = (
-                f"""
-                Classify the following scan results as Completed,
-                Incomplete, or False Positive Rich:\n\n{scan_results}
-                """
-            )
             try:
+                prompt = (
+                    f"""
+                    Classify the following scan results as Completed,
+                    Incomplete, or False Positive Rich:\n\n{scan_results}
+                    """
+                )
+                
                 user_msg_input_class = self.__client.chat.completions.create(
                     model=self.model_flavor,
                     messages=[
@@ -63,7 +64,7 @@ class GPTInterpretor(BaseInterpretor):
         
         return classifications
 
-    @abstractmethod
+    
     def interpret_restricted(self, scan_results: str) -> dict:
         classifications = {
             "error": None,
@@ -116,7 +117,7 @@ class GPTInterpretor(BaseInterpretor):
         
         return classifications
 
-    @abstractmethod
+    
     def interpret_with_suggestions(self, scan_results: str) -> dict:
         classifications = {
             "error": None,

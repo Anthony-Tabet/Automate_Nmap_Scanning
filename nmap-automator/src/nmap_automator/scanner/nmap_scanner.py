@@ -49,7 +49,7 @@ class NmapScanner:
         print(f"Running scan with nmap with arguments: { arguments }...")
         
         # -A: Aggressive scan, -T3: Normal timing, -v: Verbose output
-        results = self.run_scan(target, "-A -T3 -v")
+        results = self.__run_scan(target, "-A -T3 -v")
         self.__save_results_to_csv(results, initial_results_file)
 
         return results
