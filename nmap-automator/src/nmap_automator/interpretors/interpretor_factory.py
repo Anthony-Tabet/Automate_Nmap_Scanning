@@ -1,5 +1,5 @@
 from .gpt_based_interpretor import GPTInterpretor
-from .llama3_interpretor import Llama3Interpretor
+from .ollama_interpretor import OllamaInterpretor
 from .gemini_based_interpretor import GeminiInterpretor
 from .base_interpretor import BaseInterpretor
 
@@ -11,8 +11,8 @@ class InterpretorFactory:
         model_flavor: str="models/gemini-1.5-pro",
         api_key: str=None
     ) -> BaseInterpretor:
-        if interpretor_type == "llama3":
-            return Llama3Interpretor(name, model_flavor, api_key)
+        if interpretor_type == "ollama":
+            return OllamaInterpretor(name, model_flavor, api_key)
         elif interpretor_type == "gpt":
             return GPTInterpretor(name, model_flavor, api_key)
         elif interpretor_type == "gemini":

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from .base_interpretor import BaseInterpretor
 import google.generativeai as genai
 

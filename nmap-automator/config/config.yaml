@@ -1,0 +1,11 @@
+scanner:
+  nmap-args:
+    - "-A"
+    - "-T3"
+    - "-v"
+  save-dir: "/results"
+  target: "www.megacorpone.com"
+
+interpretor:
+  model: "ollama"
+  flavor: "monotykamary/whiterabbitneo-v1.5a"

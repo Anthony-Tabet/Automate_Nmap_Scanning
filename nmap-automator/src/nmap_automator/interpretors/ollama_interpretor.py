@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from .base_interpretor import BaseInterpretor
 from ollama import chat
 
-class Llama3Interpretor(BaseInterpretor):
+class OllamaInterpretor(BaseInterpretor):
     def __init__(
         self,
         name: str,
