@@ -1,6 +1,5 @@
 import os
 import csv
-import datetime
 import nmap
 
 class NmapScanner:
@@ -41,9 +40,7 @@ class NmapScanner:
         else:
             print(f"No results to save in {filename}.")
     
-    def scan(self, target: str, arguments: str, results_dir: str) -> list[dict]:
-        scan_name = f"scan_{ datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') }"
-        save_dir = os.path.join(results_dir, scan_name)
+    def scan(self, target: str, arguments: str, save_dir: str) -> list[dict]:
         initial_results_file = os.path.join(save_dir, "initial_scan_results.csv")
         
         print(f"Running scan with nmap with arguments: { arguments }...")

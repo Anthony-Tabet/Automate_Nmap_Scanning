@@ -1,5 +1,7 @@
 from abc import ABC
 from .base_interpretor import BaseInterpretor
+import io
+import os
 from openai import OpenAI
 
 class GPTInterpretor(BaseInterpretor):
@@ -16,9 +18,14 @@ class GPTInterpretor(BaseInterpretor):
     def configure(self):
         self.__client = OpenAI(api_key=self.api_key)
         super().configure()
+
+    def save_results(self, results: dict, save_dir: str) -> None:
+        # Save the results to a file
+        with io.open(os.path.join(save_dir, "gpt_results.json"), "w") as f:
+            results = str(results)
+            f.write(results)
     
-    
-    def interpret(self, scan_results: str) -> dict:
+    def interpret(self, scan_results: str, save_dir: str) -> dict:
         classifications = {
             "error": None,
             "result": None
@@ -56,16 +63,15 @@ class GPTInterpretor(BaseInterpretor):
                     temperature=1,
                     top_p=1
                 )
-                
-                openai_classification = user_msg_input_class.choices[0].message.content.strip()
-                classifications["result"] = openai_classification
+                classification = user_msg_input_class.choices[0].message.content.strip()
+                classifications["result"] = classification
             except Exception as e:
                 classifications["error"] = f"Error with OpenAI API: {e}"
         
+        self.save_results(classifications, save_dir)
         return classifications
-
     
-    def interpret_restricted(self, scan_results: str) -> dict:
+    def interpret_restricted(self, scan_results: str, save_dir: str) -> dict:
         classifications = {
             "error": None,
             "result": None
@@ -108,20 +114,21 @@ class GPTInterpretor(BaseInterpretor):
                     temperature=0,  # Set temperature to 0 for deterministic responses
                     top_p=1
                 )
-                openai_classification = (
+                classification = (
                     user_msg_input_class.choices[0].message.content.strip()
                 )
-                classifications["result"] = openai_classification
+                classifications["result"] = classification
             except Exception as e:
                 classifications["error"] = f"Error with OpenAI API: {e}"
         
+        self.save_results(classifications, save_dir)
         return classifications
 
-    
-    def interpret_with_suggestions(self, scan_results: str) -> dict:
+    def interpret_with_suggestions(self, scan_results: str, save_dir: str) -> dict:
         classifications = {
             "error": None,
-            "result": None
+            "result": None,
+            "next_scan": None
         }
 
         if not self.is_configured:
@@ -160,12 +167,13 @@ class GPTInterpretor(BaseInterpretor):
                     temperature=1,
                     top_p=1
                 )
-                openai_classification, next_scan = (
+                classification, next_scan = (
                     user_msg_input_class.choices[0].message.content.strip().split('\n')
                 )
-                classifications['result'] = openai_classification
-                classifications['next_scan'] = next_scan       
+                classifications["result"] = classification
+                classifications["next_scan"] = next_scan      
             except Exception as e:
                 classifications["error"] = f"Error with OpenAI API: {e}"
                 
+        self.save_results(classifications, save_dir) 
         return classifications
