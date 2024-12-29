@@ -38,11 +38,13 @@ class ScannerConfig(BaseModel):
 class InterpretorConfig(BaseModel):
     interpretor_type: Literal["ollama", "gpt", "gemini"]
     model_flavor: str
+    interpret_runner: Literal["normal", "restricted", "suggest"]
 
     @model_validator(mode='before')
     def validate_interpretor_config(cls, values):
         interpretor_type = values.get('interpretor_type')
         model_flavor = values.get('model_flavor')
+        interpret_runner = values.get('interpret_runner')
 
         model_model_flavor = {
             "gpt": ["gpt-4", "gpt-4o", "gpt-4o-mini", "o1", "o1-mini"],
@@ -64,6 +66,9 @@ class InterpretorConfig(BaseModel):
 
         if model_flavor not in valid_flavors:
             raise ValueError(f"model_flavor must be one of {valid_flavors} for interpretor_type '{interpretor_type}'")
+        
+        if interpret_runner not in ["normal", "restricted", "suggest"]:
+            raise ValueError("interpret_runner must be one of 'normal', 'restricted', 'suggest'")
         
         return values
     
