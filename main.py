@@ -1,11 +1,16 @@
 import nmap
 import csv
 import os
+import argparse
 import pandas as pd
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
+
+SCAN_STATUS_COMPLETED = "_completed"
+SCAN_STATUS_INCOMPLETE = "_incomplete"
+SCAN_STATUS_FPR = "_false_positive_rich"
 
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
@@ -42,56 +47,116 @@ def save_results_to_csv(results, filename="scan_results.csv"):
         print(f"No results to save in {filename}.")
 
 def classify_scan(results):
-    # Format the scan results as a string for the prompt
-    prompt = f"Classify the following scan results as Completed, Incomplete, or False Positive Rich:\n\n{results}"
-    
-    # Use OpenAI's chat completion to classify the scan results
-    user_msg_input_class = client.chat.completions.create(
+    if not results:
+        print("Empty results array. Skipping classification.")
+        return '{"status": "empty", "explanation": "No data available for classification."}'
+    prompt = (
+        f"You are a system that classifies scan results as '{SCAN_STATUS_COMPLETED}', '{SCAN_STATUS_INCOMPLETE}', or '{SCAN_STATUS_FPR}' "
+        "based on the scan data provided and returns a JSON response with fields 'status' and 'explanation'.\n\n"
+        f"{results}"
+    )
+
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a system that classifies scan results as 'Completed', 'Incomplete', or 'False Positive Rich' based on the scan data provided."},
-            {"role": "user", "content": prompt},
+            {
+                "role": "system",
+                "content": prompt
+            }
         ],
         temperature=1,
         top_p=1
     )
 
-    # Extract the classification result from the response
-    classification = user_msg_input_class.choices[0].message.content.strip()
+    classification = response.choices[0].message.content.strip()
     return classification
 
-def scan_with_fallback(target):
-    # Step 1: Run initial aggressive scan
+def suggest_arguments_with_llm(results):
+    if not results:
+        print("Empty results array. Cannot suggest new arguments.")
+        return []
+    prompt = (
+        f"You are an expert in NMAP and network scanning. Based on the following results, "
+        "return a JSON response with an array 'suggested_arguments' and a field 'explanation'.\n\n"
+        f"{results}"
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": prompt}
+        ],
+        temperature=1,
+        top_p=1
+    )
+
+    suggestion = response.choices[0].message.content.strip()
+    try:
+        suggestion_json = eval(suggestion)  # Convert JSON-like response to dict
+        arguments = suggestion_json.get("suggested_arguments", [])
+        explanation = suggestion_json.get("explanation", "")
+        print(f"Suggested Arguments: {arguments}\nExplanation: {explanation}")
+        return arguments
+    except Exception as e:
+        print(f"Error parsing suggestion response: {e}")
+        return []
+
+def scan_with_fallback(target, use_llm):
     print("Running initial aggressive scan...")
     results = run_nmap_scan(target, '-A -T3 -v')
     save_results_to_csv(results, "initial_scan_results.csv")
 
-    # Step 2: Classify scan results
     classification = classify_scan(results)
+    try:
+        classification_json = eval(classification)
+        status = classification_json.get("status", "").lower()
+    except Exception as e:
+        print(f"Error parsing classification response: {e}")
+        status = ""
 
-    # Step 3: If scan is classified as incomplete or false positive rich, run a lighter scan
-    if classification.lower() in ["incomplete", "false positive rich"]:
-        print("Running lighter scan due to incomplete/false positive results...")
-        results = run_nmap_scan(target, '-sS -T2')
+    if status == SCAN_STATUS_INCOMPLETE.lower() or status == SCAN_STATUS_FPR.lower():
+        if use_llm:
+            print("Scan classified as incomplete/false positive rich. Suggesting new arguments using LLM...")
+            suggested_arguments = suggest_arguments_with_llm(results)
+
+            if suggested_arguments:
+                arguments_str = " ".join(suggested_arguments)
+                print(f"Running scan with suggested arguments: {arguments_str}")
+                results = run_nmap_scan(target, arguments_str)
+            else:
+                print("No valid arguments suggested. Falling back to rule-based lighter scan...")
+                results = run_nmap_scan(target, '-sS -T2')
+        else:
+            print("Scan classified as incomplete/false positive rich. Falling back to rule-based lighter scan...")
+            results = run_nmap_scan(target, '-sS -T2')
+
         save_results_to_csv(results, "light_scan_results.csv")
-    
+
     return results
 
 def generate_final_report():
-    # Combine results from initial and any follow-up scans
     df_initial = pd.read_csv("initial_scan_results.csv")
     try:
         df_light = pd.read_csv("light_scan_results.csv")
         df_combined = pd.concat([df_initial, df_light]).drop_duplicates()
     except FileNotFoundError:
-        df_combined = df_initial  # No follow-up scan file
+        df_combined = df_initial
 
     df_combined.to_csv("final_scan_report.csv", index=False)
     print("Final report saved as final_scan_report.csv")
 
 def main():
-    target = "www.megacorpone.com"
-    results = scan_with_fallback(target)
+    parser = argparse.ArgumentParser(description="NMAP Scan Automation with LLM Integration")
+    parser.add_argument("--targets", help="Target IP addresses or domains (comma-separated)")
+    parser.add_argument("--llm-driven", action="store_true", help="Use LLM for argument suggestions instead of rule-based fallback")
+    args = parser.parse_args()
+
+    targets = args.targets.split(",")
+    for target in targets:
+        print(f"Scanning target: {target}")
+        results = scan_with_fallback(target, args.llm_driven)
+        print(results)
+
     generate_final_report()
 
 if __name__ == "__main__":
