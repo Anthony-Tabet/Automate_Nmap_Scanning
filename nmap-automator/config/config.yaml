@@ -9,3 +9,4 @@ scanner:
 interpretor:
   interpretor_type: "ollama"
   model_flavor: "ALIENTELLIGENCE/cybersecuritythreatanalysis"
+  interpret_runner: "suggest"
