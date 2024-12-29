@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "automator-client"
+version = "0.1.0"
+description = ""
+authors = ["Elias Dargham <edargham@hotmail.com>"]
+readme = "README.md"
+packages = [{include = "automator_client", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+streamlit = "^1.41.1"
+
+[tool.poetry.scripts]
+automator-client = "automator_client.app:main"
+
+[tool.poetry.group.dev.dependencies]
+watchdog = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
