@@ -95,21 +95,25 @@ class OllamaInterpretor(BaseInterpretor):
                 prompt = (
                     f"""
                     Classify the following nmap scan results as Completed, Incomplete,
-                    or False Positive Rich. 
-                    Also, recommend the next scan type (e.g., -sS, -T2, etc.)
-                    and write the command to run in the end within a "```" block.
-                    based on your analysis:\n\n{scan_results}
+                    or False Positive Rich:
+                    \n\n{scan_results}
+                    """,
+                    f"""
+                    Then based on your analysis, recommend the next nmap scan command with
+                    best scan type (e.g., -sS, -T2, etc.).
+                    Use the following format: 'Next scan: \\n```\\n<nmap_command>\\n```\\n'.
                     """
                 )
                 response = chat(
                     model=self.model_flavor, 
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                classification, next_scan = (
-                    response.message.content.strip(), 
-                    response.message.content.strip().split('\n```\n')[1].replace('```', '').replace('\n', '')
+                    messages=[
+                        {"role": "user", "content": prompt[0]}, 
+                        {"role": "user", "content": prompt[1]}
+                    ]
                 )
                 classification = response.message.content.strip()
+                next_scan = response.message.content.strip().split('```')[1].strip().replace('\n', '')
+
                 classifications["result"] = classification
                 classifications["next_scan"] = next_scan
             except Exception as e:
