@@ -1,0 +1,11 @@
+scanner:
+  nmap_args:
+    - "-A"
+    - "-T3"
+    - "-v"
+  save_dir: "./results"
+  target: "www.megacorpone.com"
+
+interpretor:
+  interpretor_type: "ollama"
+  model_flavor: "ALIENTELLIGENCE/cybersecuritythreatanalysis"
