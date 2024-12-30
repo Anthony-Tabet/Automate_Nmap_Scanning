@@ -1,6 +1,4 @@
 from .base_interpretor import BaseInterpretor
-import os
-import io
 from ollama import chat
 import json
 

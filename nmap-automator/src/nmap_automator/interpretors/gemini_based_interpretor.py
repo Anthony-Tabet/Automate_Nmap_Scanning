@@ -1,6 +1,4 @@
 from .base_interpretor import BaseInterpretor
-import io
-import os
 import google.generativeai as genai
 import json
 
