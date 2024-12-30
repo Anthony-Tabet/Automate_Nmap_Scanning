@@ -60,11 +60,6 @@ class GeminiInterpretor(BaseInterpretor):
         self.__model = genai.GenerativeModel(self.model_flavor)
         super().configure()
 
-    def save_results(self, results: dict, save_dir: str) -> None:
-        # Save the results to a file
-        with io.open(os.path.join(save_dir, f"{self.name}_results.json"), "w") as f:
-            f.write(json.dumps(results, indent=4))
-
     def _interpret(self, scan_results: str, save_dir: str, prompt_key: str) -> dict:
         classifications = {
             "error": None,

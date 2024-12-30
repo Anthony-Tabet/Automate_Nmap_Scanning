@@ -37,11 +37,6 @@ class GPTInterpretor(BaseInterpretor):
         self.__client = OpenAI(api_key=self.api_key)
         super().configure()
 
-    def save_results(self, results: dict, save_dir: str) -> None:
-        # Save the results to a file
-        with io.open(os.path.join(save_dir, f"{self.name}_results.json"), "w") as f:
-            f.write(json.dumps(results, indent=4))
-
     def _interpret(self, scan_results: str, save_dir: str, prompt_key: str, deterministic: bool = False) -> dict:
         classifications = {
             "error": None,
