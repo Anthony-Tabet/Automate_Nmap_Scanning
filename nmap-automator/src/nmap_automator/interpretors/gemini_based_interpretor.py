@@ -1,15 +1,31 @@
-from abc import ABC
 from .base_interpretor import BaseInterpretor
-import io
-import os
 import google.generativeai as genai
+import json
+
+PROMPTS = {
+    "default": (
+        "Classify the following scan results as Completed, Incomplete, or False Positive Rich:\n\n{scan_results}"
+    ),
+    "restricted": (
+        "Classify the following scan results into one of the following categories:\n"
+        "'Completed', 'Incomplete', or 'False Positive Rich'.\n"
+        "Do not provide any details, only return the category name.\n\n{scan_results}"
+    ),
+    "with_suggestions": (
+        "Classify the following scan results as Completed, Incomplete, or False Positive Rich.\n"
+        "Provide a JSON response with the following fields:\n"
+        "1. 'classification': The classification result.\n"
+        "2. 'analysis_description': A detailed explanation of the classification decision.\n"
+        "3. 'next_arguments': An array of recommended arguments for the next scan.\n\n{scan_results}"
+    ),
+}
 
 class GeminiInterpretor(BaseInterpretor):
     def __init__(
         self,
         name: str,
-        model_flavor: str="models/gemini-1.5-pro",
-        api_key: str=None
+        model_flavor: str = "models/gemini-1.5-pro",
+        api_key: str = None
     ):
         self.__client = None
         self.__model = None
@@ -36,106 +52,57 @@ class GeminiInterpretor(BaseInterpretor):
             },
         ]
         super().__init__(name, model_flavor, api_key)
-    
-    
+
     def configure(self) -> None:
         self.__client = genai.configure(api_key=self.api_key)
         self.__model = genai.GenerativeModel(self.model_flavor)
         super().configure()
 
-    def save_results(self, results: dict, save_dir: str) -> None:
-        # Save the results to a file
-        with io.open(os.path.join(save_dir, "gemini_results.json"), "w") as f:
-            results = str(results)
-            f.write(results)
-    
-    def interpret(self, scan_results: str, save_dir: str) -> dict:
-        classifications = {
-            "error": None,
-            "result": None
-        }
-
-        if not self.is_configured:
-            classifications["error"] =  "Interpretor not configured."
-        else:
-            try:
-                prompt = (
-                    f"""
-                    Classify the following scan results as Completed, 
-                    Incomplete, or False Positive Rich:\n\n{scan_results}
-                    """
-                ).strip()
-
-                print(f"Prompting { self.model_flavor.upper() }:", prompt)
-                
-                response = self.__model.generate_content([prompt], safety_settings=self.__safety_settings)
-                classification = response.text.strip() 
-                classifications["result"] = classification
-            except Exception as e:
-                classifications["error"] = f"Error with Gemini API: {e}"
-
-        self.save_results(classifications, save_dir)
-        return classifications  
-    
-    def interpret_restricted(self, scan_results: str, save_dir: str) -> dict:
-        classifications = {
-            "error": None,
-            "result": None
-        }
-
-        if not self.is_configured:
-            classifications["error"] =  "Interpretor not configured."
-        else:
-            try:
-                prompt = (
-                    f"""
-                    Classify the following scan results into one of the following categories:
-                    'Completed', 'Incomplete', or 'False Positive Rich'. Do not provide any details,
-                    only return the category name.\n\n{scan_results}
-                    """
-                ).strip()
-
-                print(f"Prompting { self.model_flavor.upper() }:", prompt)
-
-                response = self.__model.generate_content([prompt], safety_settings=self.__safety_settings)
-                classification = response.text.strip() 
-                classifications["result"] = classification
-            except Exception as e:
-                classifications["error"] = f"Error with Gemini API: {e}"
-
-        self.save_results(classifications, save_dir)
-        return classifications 
-    
-    def interpret_with_suggestions(self, scan_results: str, save_dir: str) -> dict:
+    def _interpret(self, scan_results: str, save_dir: str, prompt_key: str) -> dict:
         classifications = {
             "error": None,
             "result": None,
-            "next_scan": None
+            "analysis_description": None,
+            "next_arguments": None,
         }
 
         if not self.is_configured:
-            classifications["error"] =  "Interpretor not configured."
+            classifications["error"] = "Interpretor not configured."
         else:
             try:
-                prompt = (
-                    f"""
-                    Classify the following scan results as Completed, Incomplete, or False Positive Rich. 
-                    Also, recommend the next scan type (e.g., -sS, -T2, etc.) based on your analysis:
-                    \n\n{scan_results}
-                    """
-                ).strip()
-
-                print(f"Prompting { self.model_flavor.upper() }:", prompt)
-
+                prompt = PROMPTS[prompt_key].format(scan_results=scan_results)
                 response = self.__model.generate_content([prompt], safety_settings=self.__safety_settings)
-                classification, next_scan = (
-                    response.text.strip().split('\n')[0], 
-                    response.text.strip().split('\n')[1]
-                )
-                classifications["result"] = classification
-                classifications["next_scan"] = next_scan
+                output = response.text.strip()
+
+                if prompt_key == "with_suggestions":
+                    # Attempt to parse JSON response
+                    json_start = output.find('{')  # Find the first '{' character
+                    json_end = output.rfind('}')  # Find the last '}' character
+
+                    if json_start != -1 and json_end != -1:
+                        sanitized_output = output[json_start:json_end + 1]  # Extract JSON part
+                        parsed_output = json.loads(sanitized_output)
+                        classifications["result"] = parsed_output.get("classification", None)
+                        classifications["analysis_description"] = parsed_output.get("analysis_description", None)
+                        classifications["next_arguments"] = parsed_output.get("next_arguments", [])
+                    else:
+                        classifications["error"] = "No valid JSON found in Gemini response."
+                else:
+                    classifications["result"] = output
+
+            except json.JSONDecodeError:
+                classifications["error"] = "Failed to parse JSON response from Gemini."
             except Exception as e:
                 classifications["error"] = f"Error with Gemini API: {e}"
 
         self.save_results(classifications, save_dir)
         return classifications
+
+    def interpret(self, scan_results: str, save_dir: str) -> dict:
+        return self._interpret(scan_results, save_dir, "default")
+
+    def interpret_restricted(self, scan_results: str, save_dir: str) -> dict:
+        return self._interpret(scan_results, save_dir, "restricted")
+
+    def interpret_with_suggestions(self, scan_results: str, save_dir: str) -> dict:
+        return self._interpret(scan_results, save_dir, "with_suggestions")
