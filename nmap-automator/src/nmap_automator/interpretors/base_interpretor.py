@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import io
+import os
+import json
 
 class BaseInterpretor(ABC):
     def __init__(
@@ -13,12 +16,17 @@ class BaseInterpretor(ABC):
         self.results = None
         self.is_configured = False
 
+    def save_results(self, results: dict, save_dir: str) -> None:
+        # Save the results to a file
+        with io.open(os.path.join(save_dir, f"{self.name}_results.json"), "w") as f:
+            f.write(json.dumps(results, indent=4))
+
     @abstractmethod
     def configure(self) -> None:
         self.is_configured = True
 
     @abstractmethod
-    def save_results(self, results: dict, save_dir: str) -> None:
+    def _interpret(self, scan_results: str, save_dir: str, prompt: str, deterministic: bool = False) -> dict:
         pass
     
     @abstractmethod
