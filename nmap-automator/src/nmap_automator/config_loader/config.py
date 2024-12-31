@@ -1,18 +1,18 @@
 import os
-from typing import Literal
+from typing import Literal, List
 
 from pydantic import BaseModel, field_validator, model_validator, Field
 from omegaconf import OmegaConf
 
 class ScannerConfig(BaseModel):
-    nmap_args: list[str]
+    nmap_args: List[str]
     save_dir: str
-    target: str
+    target: List[str]
 
     @field_validator("nmap_args")
     @classmethod
     def validate_nmap_args(cls, v):
-        if not isinstance(v, list):
+        if not isinstance(v, List):
             raise ValueError("nmap_args must be a list")
         for arg in v:
             if not isinstance(arg, str):
@@ -31,8 +31,8 @@ class ScannerConfig(BaseModel):
     @field_validator("target")
     @classmethod
     def validate_target(cls, v):
-        if not isinstance(v, str):
-            raise ValueError("target must be a string")
+        if not isinstance(v, List):
+            raise ValueError("targets must be a list")
         return v
     
 class InterpretorConfig(BaseModel):
@@ -78,9 +78,10 @@ class NmapScanRequest(BaseModel):
 
 class LLMInterpretRequest(BaseModel):
     """Request model for the /llm_interpret endpoint."""
-    scanner: ScannerConfig = Field(..., description="Scanner configuration for the saved directory.")
+    #scanner: ScannerConfig = Field(..., description="Scanner configuration for the saved directory.")
     interpretor: InterpretorConfig = Field(..., description="Interpreter configuration for the LLM.")
-    file_path: str = Field(..., description="Path to the CSV file with scan results.")
+    scan_file_path: str = Field(..., description="Path to the CSV file with scan results.")
+    scan_dir_path: str = Field(..., description="Path to the scan data directory.")
 
 class SubdomainRequest(BaseModel):
     domain: str = Field(..., description="The target domain to enumerate subdomains for.")

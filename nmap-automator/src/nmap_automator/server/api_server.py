@@ -31,14 +31,41 @@ class Runner:
         return interpretor
     
     def create_save_dir(self, scanner_conf: ScannerConfig) -> str:
-        scan_name = f"scan_{ datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') }"
-        return os.path.join(scanner_conf.save_dir, scan_name)
+        scan_name = f"scan_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        full_path = os.path.join(scanner_conf.save_dir, scan_name)
+        os.makedirs(full_path, exist_ok=True)
+        return full_path
 
-    def scan_with_nmap(self, scanner_conf: ScannerConfig, save_dir: str) -> list[dict]:
-        target = scanner_conf.target
-        nmap_args = " ".join(scanner_conf.nmap_args)
+    def scan_with_nmap(self, scanner_conf: ScannerConfig, target: str, scan_dir: str) -> dict:
+        """
+        Perform an Nmap scan for a single target.
+
+        :param scanner_conf: ScannerConfig object with nmap_args and save_dir.
+        :param target: The specific target to scan (single IP or hostname).
+        :return: Dictionary containing scan results and metadata.
+        """
         scanner = NmapScanner()
-        return scanner.scan(target=target, arguments=nmap_args, save_dir=save_dir)
+        nmap_args = " ".join(scanner_conf.nmap_args)
+
+        try:
+            print(f"Scanning target: {target} with args: {nmap_args}")
+            scan_results = scanner.scan(
+                target=target,
+                arguments=nmap_args,
+                save_dir=scan_dir
+            )
+            return {
+                "target": target,
+                "results": scan_results,
+                "nmap_args": scanner_conf.nmap_args
+            }
+        except Exception as e:
+            print(f"Error scanning target {target}: {e}")
+            return {
+                "target": target,
+                "error": str(e),
+                "nmap_args": scanner_conf.nmap_args
+            }
     
     def run_llm_interpretation(self, interpreter_conf: InterpretorConfig, results: list[dict], save_dir: str) -> list[dict]:
         interpretor = self._create_interpretor(interpreter_conf)
@@ -80,20 +107,37 @@ def scan():
 def nmap_scan():
     """Run only the Nmap scan."""
     try:
+        # Parse request payload
         data = request.get_json()
+        print(f"Received payload: {data}")
+
         request_model = NmapScanRequest(**data)
         scanner_config = request_model.scanner
+
+        # Initialize runner
         runner = Runner()
+
+        # Create a save directory for the scan
         scan_dir = runner.create_save_dir(scanner_conf=scanner_config)
-        raw_results = runner.scan_with_nmap(request_model.scanner, save_dir=scan_dir)
-        file_path = os.path.join(scan_dir, "initial_scan_results.csv")
+
+        # Run the scan for all targets
+        all_results = []
+        for target in scanner_config.target:
+            scan_result = runner.scan_with_nmap(scanner_conf=scanner_config, target=target, scan_dir=scan_dir)
+            all_results.append(scan_result)
+
         return jsonify({
-            "raw_results": raw_results,
-            "scan_dir": scan_dir,
-            "file_path": file_path
+            "data": all_results,
+            "scan_file_path": os.path.join(scan_dir, "initial_scan_results.csv"),
+            "scan_dir_path": scan_dir
         })
+    except ValidationError as e:
+        print(f"Validation Error: {e}")
+        return jsonify({"error": e.errors()}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        print(f"Unhandled Exception: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 def llm_interpret():
@@ -103,11 +147,12 @@ def llm_interpret():
         request_model = LLMInterpretRequest(**data)  # Validate request
 
         # Validate and extract configurations
-        conf = Config(scanner=request_model.scanner, interpretor=request_model.interpretor)
-        raw_results = read_results_from_csv(request_model.file_path)
+        # conf = Config(scanner=request_model.scanner, interpretor=request_model.interpretor)
+        conf = request_model.interpretor
+        raw_results = read_results_from_csv(request_model.scan_file_path)
 
         runner = Runner()
-        interpreted_results = runner.run_llm_interpretation(conf, raw_results, request_model.scanner.save_dir)
+        interpreted_results = runner.run_llm_interpretation(conf, raw_results, request_model.scan_dir_path)
         return jsonify({
             "interpreted_results": interpreted_results,
         })
