@@ -11,6 +11,8 @@ MODEL_FLAVORS = {
     ]
 }
 
+RUNNER_MODES = ["normal", "restricted", "suggest"]
+
 API_URL = "http://127.0.0.1:5000"
 SCAN_ENDPOINT = f"{API_URL}/scan"
 NMAP_ENDPOINT = f"{API_URL}/nmap_scan"
