@@ -84,8 +84,8 @@ class Runner:
 
     def process_scan(self, conf: Config):
         save_dir = self.create_save_dir(conf.scanner)
-        nmap_results = self.scan_with_nmap(conf=conf.scanner, save_dir=save_dir)
-        interpreter_results = self.run_llm_interpretation(conf=conf.interpretor, results=nmap_results, save_dir=save_dir)
+        nmap_results = self.scan_with_nmap(scanner_conf=conf.scanner, save_dir=save_dir)
+        interpreter_results = self.run_llm_interpretation(interpreter_conf=conf.interpretor, results=nmap_results, save_dir=save_dir)
         return interpreter_results, nmap_results
     
 def scan():
