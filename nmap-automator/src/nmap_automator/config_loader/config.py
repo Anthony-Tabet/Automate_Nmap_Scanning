@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator, Field
 from omegaconf import OmegaConf
 
 class ScannerConfig(BaseModel):
@@ -71,7 +71,17 @@ class InterpretorConfig(BaseModel):
             raise ValueError("interpret_runner must be one of 'normal', 'restricted', 'suggest'")
         
         return values
-    
+
+class NmapScanRequest(BaseModel):
+    """Request model for the /nmap_scan endpoint."""
+    scanner: ScannerConfig = Field(..., description="Scanner configuration for the Nmap scan.")
+
+class LLMInterpretRequest(BaseModel):
+    """Request model for the /llm_interpret endpoint."""
+    scanner: ScannerConfig = Field(..., description="Scanner configuration for the saved directory.")
+    interpretor: InterpretorConfig = Field(..., description="Interpreter configuration for the LLM.")
+    file_path: str = Field(..., description="Path to the CSV file with scan results.")
+
 class Config(BaseModel):
     scanner: ScannerConfig
     interpretor: InterpretorConfig
