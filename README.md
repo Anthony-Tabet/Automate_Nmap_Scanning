@@ -6,6 +6,17 @@ This project provides a complete pipeline to enumerate subdomains, perform Nmap 
 2. **Client**: A Streamlit app for interacting with the server and visualizing results.
 
 ---
+## Demo
+
+Here's a quick demo of the application in action:
+
+[![Watch the Demo]## Demo
+
+Here's a quick demo of the application in action:
+
+[![Watch the Demo](https://img.youtube.com/vi/0KK_iwCR_XM/0.jpg)](https://youtu.be/0KK_iwCR_XM)
+
+---
 
 ## Prerequisites
 
