@@ -102,7 +102,7 @@ def main():
         st.header("Step 4: Analyze Nmap Logs")
         interpreter_type = st.selectbox("Choose an interpreter", ["gpt", "gemini", "ollama"])
         model_flavor = st.selectbox("Choose a model flavor", const.MODEL_FLAVORS[interpreter_type])
-        runner_mode = st.selectbox("Select Runner Mode", ["normal", "restricted", "suggest"])
+        runner_mode = st.selectbox("Select Runner Mode", const.RUNNER_MODES)
 
         if st.button("Analyze Logs"):
             payload = {
