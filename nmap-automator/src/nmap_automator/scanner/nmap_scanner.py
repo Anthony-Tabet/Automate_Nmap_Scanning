@@ -30,8 +30,12 @@ class NmapScanner:
                     })
         return results
 
-    def __save_results_to_csv(self, results: list[dict], filename: str) -> None:
+    def __save_results_to_csv(self, results: list[dict], filename: str, subdomain: str) -> None:
         if results:
+            # Add Subdomain information to each result
+            for result in results:
+                result["Subdomain"] = subdomain
+
             dirs = os.path.dirname(filename)
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
@@ -60,6 +64,5 @@ class NmapScanner:
         results = self.__run_scan(target, arguments)
 
         # Save the results
-        self.__save_results_to_csv(results, initial_results_file)
-
+        self.__save_results_to_csv(results, initial_results_file, subdomain=target)
         return results
