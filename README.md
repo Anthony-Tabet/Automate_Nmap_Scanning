@@ -42,7 +42,7 @@ pipx install poetry
 Navigate to the `server` directory and install dependencies:
 
 ```bash
-cd server
+cd nmap-automator
 poetry install
 ```
 
@@ -50,7 +50,7 @@ poetry install
 Navigate to the `client` directory and install dependencies:
 
 ```bash
-cd ../client
+cd ../automator-client
 poetry install
 ```
 
@@ -95,6 +95,16 @@ This will launch the Streamlit app in your default web browser. By default, it r
 └── README.md              # Project documentation
 ```
 
+---
+## Setting up API keys
+
+Create a .env file on the project root, then add the the following keys:
+
+```code
+OPENAI_API_KEY=".."
+
+GOOGLE_API=".."
+```
 ---
 
 ## Troubleshooting
