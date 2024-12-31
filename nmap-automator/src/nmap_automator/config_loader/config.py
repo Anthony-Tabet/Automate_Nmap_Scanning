@@ -82,6 +82,16 @@ class LLMInterpretRequest(BaseModel):
     interpretor: InterpretorConfig = Field(..., description="Interpreter configuration for the LLM.")
     file_path: str = Field(..., description="Path to the CSV file with scan results.")
 
+class SubdomainRequest(BaseModel):
+    domain: str = Field(..., description="The target domain to enumerate subdomains for.")
+    engines: list[str] = Field(
+        default=[
+            "google", "bing", "yahoo", "baidu", "ask", "netcraft",
+            "dnsdumpster", "virustotal", "threatcrowd", "ssl", "passivedns"
+        ],
+        description="List of search engines to use for subdomain enumeration."
+    )
+
 class Config(BaseModel):
     scanner: ScannerConfig
     interpretor: InterpretorConfig

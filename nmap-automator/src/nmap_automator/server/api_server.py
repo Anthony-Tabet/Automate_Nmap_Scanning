@@ -4,8 +4,9 @@ import datetime
 from dotenv import load_dotenv
 from nmap_automator.interpretors import InterpretorFactory
 from nmap_automator.scanner import NmapScanner
-from nmap_automator.config_loader import Config, NmapScanRequest, LLMInterpretRequest, ScannerConfig, InterpretorConfig
+from nmap_automator.config_loader import Config, NmapScanRequest, LLMInterpretRequest, ScannerConfig, InterpretorConfig, SubdomainRequest
 from nmap_automator.utils.api_utils import parse_request_data, read_results_from_csv
+from pydantic import ValidationError
 
 api_server = Flask(__name__)
 
@@ -113,6 +114,45 @@ def llm_interpret():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+def enumerate_subdomains():
+    """Dummy function to return hardcoded subdomains for megacorpone.com."""
+    try:
+        data = request.get_json()
+        request_model = SubdomainRequest(**data)  # Validate request with Pydantic
+
+        if request_model.domain != "megacorpone.com":
+            return jsonify({"error": "This function only supports megacorpone.com."}), 400
+
+        # Hardcoded list of subdomains for megacorpone.com
+        # tried using sublist3r -> kouuusa
+        subdomains = [
+            "www.megacorpone.com",
+            "admin.megacorpone.com",
+            "mail.megacorpone.com",
+            "vpn.megacorpone.com",
+            "test.megacorpone.com",
+            "beta.megacorpone.com",
+            "fs1.megacorpone.com",
+            "intranet.megacorpone.com",
+            "mail2.megacorpone.com",
+            "ns1.megacorpone.com",
+            "ns2.megacorpone.com",
+            "ns3.megacorpone.com",
+            "router.megacorpone.com",
+            "siem.megacorpone.com",
+            "snmp.megacorpone.com",
+            "support.megacorpone.com",
+            "syslog.megacorpone.com",
+            "test.megacorpone.com",
+        ]
+
+        return jsonify({"domain": request_model.domain, "subdomains": subdomains})
+    except ValidationError as e:
+        return jsonify({"error": e.errors()}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
 
 
 def create_api_server() -> Flask:
@@ -120,4 +160,5 @@ def create_api_server() -> Flask:
     api_server.add_url_rule('/scan', 'scan', scan, methods=['POST'])
     api_server.add_url_rule('/nmap_scan', 'nmap_scan', nmap_scan, methods=['POST'])
     api_server.add_url_rule('/llm_interpret', 'llm_interpret', llm_interpret, methods=['POST'])
+    api_server.add_url_rule('/enumerate_subdomains', 'enumerate_subdomains', enumerate_subdomains, methods=['POST'])
     return api_server

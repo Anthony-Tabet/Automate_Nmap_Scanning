@@ -1,1 +1,1 @@
-from .config import Config, NmapScanRequest, LLMInterpretRequest, ScannerConfig, InterpretorConfig
+from .config import Config, NmapScanRequest, LLMInterpretRequest, ScannerConfig, InterpretorConfig, SubdomainRequest
