@@ -1,0 +1,7 @@
+poetry=='1.8.5'
+python-nmap=='0.7.1'
+pyhton-dotenv=='1.0.1'
+pandas=='2.2.3'
+openai=='1.59.0'
+ollama-python=='0.4.4'
+google-generativeai=='0.8.3'
