@@ -24,7 +24,8 @@ class GPTInterpretor(BaseInterpretor):
         classifications = {
             "error": None,
             "result": None,
-            "next_scan": None
+            "analysis_description": None,
+            "next_arguments": None
         }
 
         if not self.is_configured:

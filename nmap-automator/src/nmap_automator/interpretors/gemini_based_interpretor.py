@@ -48,7 +48,7 @@ class GeminiInterpretor(BaseInterpretor):
             "error": None,
             "result": None,
             "analysis_description": None,
-            "next_arguments": None,
+            "next_arguments": None
         }
 
         if not self.is_configured:
@@ -59,22 +59,18 @@ class GeminiInterpretor(BaseInterpretor):
                 response = self.__model.generate_content([prompt], safety_settings=self.__safety_settings)
                 output = response.text.strip()
 
-                if prompt_key == "with_suggestions":
-                    # Attempt to parse JSON response
-                    json_start = output.find('{')  # Find the first '{' character
-                    json_end = output.rfind('}')  # Find the last '}' character
+                # Attempt to parse JSON response
+                json_start = output.find('{')  # Find the first '{' character
+                json_end = output.rfind('}')  # Find the last '}' character
 
-                    if json_start != -1 and json_end != -1:
-                        sanitized_output = output[json_start:json_end + 1]  # Extract JSON part
-                        parsed_output = json.loads(sanitized_output)
-                        classifications["result"] = parsed_output.get("classification", None)
-                        classifications["analysis_description"] = parsed_output.get("analysis_description", None)
-                        classifications["next_arguments"] = parsed_output.get("next_arguments", [])
-                    else:
-                        classifications["error"] = "No valid JSON found in Gemini response."
+                if json_start != -1 and json_end != -1:
+                    sanitized_output = output[json_start:json_end + 1]  # Extract JSON part
+                    parsed_output = json.loads(sanitized_output)
+                    classifications["result"] = parsed_output.get("classification", None)
+                    classifications["analysis_description"] = parsed_output.get("analysis_description", None)
+                    classifications["next_arguments"] = parsed_output.get("next_arguments", [])
                 else:
-                    classifications["result"] = output
-
+                    classifications["error"] = "No valid JSON found in Gemini response."
             except json.JSONDecodeError:
                 classifications["error"] = "Failed to parse JSON response from Gemini."
             except Exception as e:
