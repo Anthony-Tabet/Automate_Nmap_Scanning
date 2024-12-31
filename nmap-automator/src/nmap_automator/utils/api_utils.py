@@ -14,7 +14,9 @@ def parse_request_data():
         conf = Config.from_json(data)
         return conf, None
     except Exception as e:
-        return None, jsonify({"error": str(e)}), 400
+        error_response = jsonify({"error": str(e)})
+        error_response.status_code = 400
+        return None, error_response
 
 def read_results_from_csv(file_path):
     """Read scan results from a CSV file."""

@@ -4,7 +4,7 @@ import datetime
 from dotenv import load_dotenv
 from nmap_automator.interpretors import InterpretorFactory
 from nmap_automator.scanner import NmapScanner
-from nmap_automator.config_loader import Config
+from nmap_automator.config_loader import Config, NmapScanRequest, LLMInterpretRequest, ScannerConfig, InterpretorConfig
 from nmap_automator.utils.api_utils import parse_request_data, read_results_from_csv
 
 api_server = Flask(__name__)
@@ -29,21 +29,20 @@ class Runner:
         interpretor.configure()
         return interpretor
     
-    def create_save_dir(self, conf: Config) -> str:
+    def create_save_dir(self, scanner_conf: ScannerConfig) -> str:
         scan_name = f"scan_{ datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') }"
-        return os.path.join(conf.scanner.save_dir, scan_name)
+        return os.path.join(scanner_conf.save_dir, scan_name)
 
-    def scan_with_nmap(self, conf: Config, save_dir: str) -> list[dict]:
-        sav_dir = self.create_save_dir(conf)
-        target = conf.scanner.target
-        nmap_args = " ".join(conf.scanner.nmap_args)
+    def scan_with_nmap(self, scanner_conf: ScannerConfig, save_dir: str) -> list[dict]:
+        target = scanner_conf.target
+        nmap_args = " ".join(scanner_conf.nmap_args)
         scanner = NmapScanner()
-        return scanner.scan(target=target, arguments=nmap_args, save_dir=sav_dir)
+        return scanner.scan(target=target, arguments=nmap_args, save_dir=save_dir)
     
-    def run_llm_interpretation(self, conf: Config, results: list[dict], save_dir: str) -> list[dict]:
-        interpretor = self._create_interpretor(conf)
-        print("Interpreting with", conf.interpretor.interpretor_type, " via ", conf.interpretor.model_flavor)
-        runner_type = conf.interpretor.interpret_runner
+    def run_llm_interpretation(self, interpreter_conf: InterpretorConfig, results: list[dict], save_dir: str) -> list[dict]:
+        interpretor = self._create_interpretor(interpreter_conf)
+        print("Interpreting with", interpreter_conf.interpretor.interpretor_type, " via ", interpreter_conf.interpretor.model_flavor)
+        runner_type = interpreter_conf.interpretor.interpret_runner
         if runner_type == "normal":
             res = interpretor.interpret(results, save_dir)
         elif runner_type == "restricted":
@@ -56,9 +55,9 @@ class Runner:
         return res
 
     def process_scan(self, conf: Config):
-        save_dir = self.create_save_dir(conf)
-        nmap_results = self.scan_with_nmap(conf=conf, save_dir=save_dir)
-        interpreter_results = self.run_llm_interpretation(conf=conf, results=nmap_results, save_dir=save_dir)
+        save_dir = self.create_save_dir(conf.scanner)
+        nmap_results = self.scan_with_nmap(conf=conf.scanner, save_dir=save_dir)
+        interpreter_results = self.run_llm_interpretation(conf=conf.interpretor, results=nmap_results, save_dir=save_dir)
         return interpreter_results, nmap_results
     
 def scan():
@@ -79,46 +78,41 @@ def scan():
 
 def nmap_scan():
     """Run only the Nmap scan."""
-    conf, error_response = parse_request_data()
-    if error_response:
-        return error_response
-
     try:
+        data = request.get_json()
+        request_model = NmapScanRequest(**data)
+        scanner_config = request_model.scanner
         runner = Runner()
-        raw_results, save_dir = runner.scan_with_nmap(conf)
-        file_path = os.path.join(save_dir, "initial_scan_results.csv")
+        scan_dir = runner.create_save_dir(scanner_conf=scanner_config)
+        raw_results = runner.scan_with_nmap(request_model.scanner, save_dir=scan_dir)
+        file_path = os.path.join(scan_dir, "initial_scan_results.csv")
         return jsonify({
             "raw_results": raw_results,
-            "save_dir": save_dir,
+            "scan_dir": scan_dir,
             "file_path": file_path
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
+
 
 def llm_interpret():
     """Run only the LLM interpretation on provided scan results."""
-    data = dict(request.get_json())
-
     try:
-        conf = Config.from_json(data)
-        file_path = data.get("file_path")
-        save_dir = data.get("save_dir", "./results")
+        data = request.get_json()
+        request_model = LLMInterpretRequest(**data)  # Validate request
 
-        if not file_path:
-            raise ValueError("Missing 'file_path' in request payload.")
-        
-        raw_results = read_results_from_csv(file_path)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        # Validate and extract configurations
+        conf = Config(scanner=request_model.scanner, interpretor=request_model.interpretor)
+        raw_results = read_results_from_csv(request_model.file_path)
 
-    try:
         runner = Runner()
-        interpreted_results = runner.run_llm_interpretation(conf, raw_results, save_dir)
+        interpreted_results = runner.run_llm_interpretation(conf, raw_results, request_model.scanner.save_dir)
         return jsonify({
             "interpreted_results": interpreted_results,
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
+
 
 
 def create_api_server() -> Flask:
