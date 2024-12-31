@@ -14,17 +14,17 @@ class Runner:
     def __init__(self):
         load_dotenv()
 
-    def _create_interpretor(self, conf: Config):
+    def _create_interpretor(self, conf: InterpretorConfig):
         api_key = None
-        if conf.interpretor.interpretor_type == "gpt":
+        if conf.interpretor_type == "gpt":
             api_key = os.getenv("OPENAI_API_KEY")
-        elif conf.interpretor.interpretor_type == "gemini":
+        elif conf.interpretor_type == "gemini":
             api_key = os.getenv("GOOGLE_API_KEY")
 
         interpretor = InterpretorFactory.create_interpretor(
-          conf.interpretor.interpretor_type,
+          conf.interpretor_type,
           "Nmap Automator",
-          conf.interpretor.model_flavor,
+          conf.model_flavor,
           api_key=api_key
         )
         interpretor.configure()
@@ -42,8 +42,8 @@ class Runner:
     
     def run_llm_interpretation(self, interpreter_conf: InterpretorConfig, results: list[dict], save_dir: str) -> list[dict]:
         interpretor = self._create_interpretor(interpreter_conf)
-        print("Interpreting with", interpreter_conf.interpretor.interpretor_type, " via ", interpreter_conf.interpretor.model_flavor)
-        runner_type = interpreter_conf.interpretor.interpret_runner
+        print("Interpreting with", interpreter_conf.interpretor_type, " via ", interpreter_conf.model_flavor)
+        runner_type = interpreter_conf.interpret_runner
         if runner_type == "normal":
             res = interpretor.interpret(results, save_dir)
         elif runner_type == "restricted":
@@ -57,8 +57,8 @@ class Runner:
 
     def process_scan(self, conf: Config):
         save_dir = self.create_save_dir(conf.scanner)
-        nmap_results = self.scan_with_nmap(conf=conf.scanner, save_dir=save_dir)
-        interpreter_results = self.run_llm_interpretation(conf=conf.interpretor, results=nmap_results, save_dir=save_dir)
+        nmap_results = self.scan_with_nmap(scanner_conf=conf.scanner, save_dir=save_dir)
+        interpreter_results = self.run_llm_interpretation(interpreter_conf=conf.interpretor, results=nmap_results, save_dir=save_dir)
         return interpreter_results, nmap_results
     
 def scan():
